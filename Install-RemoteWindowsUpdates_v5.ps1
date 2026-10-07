@@ -10,16 +10,20 @@
     and those names are written to NotComplete_<time>.txt so you can just re-run on them.
 
 .EXAMPLE
-    .\Install-RemoteWindowsUpdates_v5.ps1 -ListPath .\all.txt -Credential (Get-Credential)
+    powershell.exe -ExecutionPolicy Bypass -File .\Install-RemoteWindowsUpdates_v5.ps1
+    # prompts you to paste computer names
+.EXAMPLE
+    powershell.exe -ExecutionPolicy Bypass -File .\Install-RemoteWindowsUpdates_v5.ps1 -ListPath .\pcs.txt
     # ...reboot the PCs that report "reboot pending", then re-run on the leftovers:
-    .\Install-RemoteWindowsUpdates_v5.ps1 -ListPath .\NotComplete_20261007_140000.txt
+    powershell.exe -ExecutionPolicy Bypass -File .\Install-RemoteWindowsUpdates_v5.ps1 -ListPath .\NotComplete_20261007_140000.txt
     # repeat until it reports all complete
 .EXAMPLE
-    .\Install-RemoteWindowsUpdates_v5.ps1 -ListPath .\all.txt -Verify    # check only, installs nothing
+    powershell.exe -ExecutionPolicy Bypass -File .\Install-RemoteWindowsUpdates_v5.ps1 -ListPath .\pcs.txt -Verify   # check only, installs nothing
 .EXAMPLE
-    .\Install-RemoteWindowsUpdates_v5.ps1 -ComputerName PC01 -UpdateSource WindowsUpdate   # bypass WSUS
+    powershell.exe -ExecutionPolicy Bypass -File .\Install-RemoteWindowsUpdates_v5.ps1 -ComputerName PC01 -UpdateSource WindowsUpdate   # bypass WSUS
 
 .NOTES
+    Version: 5 FINAL - 2026-10-07
     Requirements: WinRM/PowerShell remoting enabled on targets, local admin rights there.
     Why a scheduled task? The Windows Update Agent COM API refuses to download/install
     when called directly over a remote session (Access Denied). The script drops a
@@ -50,6 +54,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$scriptVersion = '5 FINAL - 2026-10-07'
 $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
 # wuauserv is required; the rest are best-effort (a failure on them is reported, not fatal)
 $serviceNames = 'wuauserv','bits','cryptsvc','UsoSvc','DoSvc'
@@ -74,7 +79,8 @@ if (-not $targets) { throw "No computer names supplied." }
 $mode = if ($Verify) { 'VERIFY ONLY (search + reboot check, no download/install)' } else { 'DOWNLOAD + INSTALL updates (no reboot)' }
 $preview = ($targets | Select-Object -First 10) -join ', '
 if ($targets.Count -gt 10) { $preview += ", ... (+$($targets.Count - 10) more)" }
-Write-Host "`nScope of this run:" -ForegroundColor Yellow
+Write-Host "`nInstall-RemoteWindowsUpdates version $scriptVersion" -ForegroundColor Green
+Write-Host "Scope of this run:" -ForegroundColor Yellow
 Write-Host "  Action : $mode"
 Write-Host "  Source : $UpdateSource   (up to $MaxPasses install passes, stops early if a reboot is needed)"
 if (-not $Verify) {
